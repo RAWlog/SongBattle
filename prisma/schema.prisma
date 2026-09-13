@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// For MVP and easy local setup, we use SQLite. 
+// To use PostgreSQL for production: 
+// 1. Change provider to "postgresql"
+// 2. Change url to env("DATABASE_URL")
+// 3. Delete prisma/migrations and run `npx prisma db push`
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Tournament {
+  id          String   @id @default(uuid())
+  spotifyId   String
+  name        String
+  thumbnail   String?
+  status      String   @default("IMPORTING") // IMPORTING, READY, IN_PROGRESS, COMPLETED
+  currentRound Int     @default(1)
+  winnerId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  tracks      Track[]
+  matches     Match[]
+}
+
+model Track {
+  id             String   @id @default(uuid())
+  tournamentId   String
+  spotifyId      String
+  title          String
+  artist         String
+  album          String?
+  albumArtUrl    String?
+  durationMs      Int?      @default(0)
+  
+  youtubeVideoId String?
+  youtubeTitle   String?
+  youtubeConfidence String? // HIGH, MEDIUM, LOW
+  isManualMatch  Boolean  @default(false)
+  
+  eloRating      Int      @default(1500)
+  wins           Int      @default(0)
+  losses         Int      @default(0)
+  
+  tournament     Tournament @relation(fields: [tournamentId], references: [id])
+  matchesAsA     Match[]  @relation("PlayerA")
+  matchesAsB     Match[]  @relation("PlayerB")
+}
+
+model Match {
+  id           String   @id @default(uuid())
+  tournamentId String
+  round        Int
+  position     Int
+  playerAId    String?
+  playerBId    String?
+  winnerId     String?
+  status       String   @default("PENDING") // PENDING, READY, COMPLETED, BYE
+  
+  tournament   Tournament @relation(fields: [tournamentId], references: [id])
+  playerA      Track?     @relation("PlayerA", fields: [playerAId], references: [id])
+  playerB      Track?     @relation("PlayerB", fields: [playerBId], references: [id])
+}
